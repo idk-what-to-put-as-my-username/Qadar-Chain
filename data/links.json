@@ -1,0 +1,62 @@
+[
+    {
+        "source": "A",
+        "target": "Muhaha"
+    },
+    {
+        "source": "Hihihi",
+        "target": "C"
+    },
+    {
+        "source": "Hohhoh",
+        "target": "D"
+    },
+    {
+        "source": "Hahaha",
+        "target": "E"
+    },
+    {
+        "source": "D",
+        "target": "F"
+    },
+    {
+        "source": "A",
+        "target": "Muhaha"
+    },
+    {
+        "source": "B",
+        "target": "C"
+    },
+    {
+        "source": "Hahaha",
+        "target": "E"
+    },
+    {
+        "source": "D",
+        "target": "F"
+    },
+    {
+        "source": "C",
+        "target": "E"
+    },
+    {
+        "source": "A",
+        "target": "Muhaha"
+    },
+    {
+        "source": "Muhaha",
+        "target": "Hahaha"
+    },
+    {
+        "source": "Hahaha",
+        "target": "D"
+    },
+    {
+        "source": "Hihihi",
+        "target": "Hohhoh"
+    },
+    {
+        "source": "Muhaha",
+        "target": "Hihihi"
+    }
+]
