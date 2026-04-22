@@ -1,5 +1,5 @@
 import { nodes, links } from "./state.js"
-import { linkColour, linkThickness, nodeColour, nodeRadius, maxLen, forceLinkDistance, forceLinkStrength, forceRepulsionStrength, forceCollisionRadius, glowControl } from "./state.js"
+import { linkColour, linkThickness, nodeColour, nodeRadius, maxLen, forceLinkDistance, forceLinkStrength, forceRepulsionStrength, forceCollisionRadius, glowControl, onSettingChanged } from "./state.js"
 
 const width = window.innerWidth;
 const height = window.innerHeight;
@@ -13,20 +13,30 @@ const mainGroup = svg.select("#main-g")
 
 let simulation, linkLines, nodePoints, nodeCircles, nodeNames
 
+// Helper: convert "rgb(r, g, b)" into "rgba(r, g, b, a)"
+function rgbToRgba(rgb, alpha) {
+    return rgb.replace('rgb(', 'rgba(').replace(')', `, ${alpha})`);
+}
 
-//defining "radialGradient" effect
-defs.append("radialGradient")
-    .attr("id", "glow")
-    .selectAll("stop")
-    .data([
-        { offset: `${glowControl.reg[0]*100}%`, color: nodeColour.replace('rgb', 'rgba').replace(')', ', 1)') },
-        { offset: `${glowControl.reg[1]*100}%`, color: nodeColour.replace('rgb', 'rgba').replace(')', ', 0.5)') },
-        { offset: `${glowControl.reg[2]*100}%`, color: nodeColour.replace('rgb', 'rgba').replace(')', ', 0)') }
-    ])
-    .enter()
-    .append("stop")
-    .attr("offset", d => d.offset)
-    .attr("stop-color", d => d.color)
+function buildGradient(colour, stops) {
+    // Remove old gradient and rebuild
+    defs.select("#glow").remove();
+    defs.append("radialGradient")
+        .attr("id", "glow")
+        .selectAll("stop")
+        .data([
+            { offset: `${stops[0]*100}%`, color: rgbToRgba(colour, 1)   },
+            { offset: `${stops[1]*100}%`, color: rgbToRgba(colour, 0.5) },
+            { offset: `${stops[2]*100}%`, color: rgbToRgba(colour, 0)   }
+        ])
+        .enter()
+        .append("stop")
+        .attr("offset", d => d.offset)
+        .attr("stop-color", d => d.color);
+}
+
+// Initial gradient
+buildGradient(nodeColour, glowControl.reg);
 
 //zooming and panning
 svg.call(d3.zoom()
@@ -81,3 +91,16 @@ simulation.on("tick", () => {
     nodePoints
         .attr("transform", d => `translate(${d.x}, ${d.y})`)
 })
+
+// React to settings changes
+onSettingChanged(({ type, value }) => {
+    if (type === "nodeColour") {
+        buildGradient(value, glowControl.reg);
+        // Re-apply fill to force SVG to re-render gradient
+        nodeCircles.attr("fill", "none").attr("fill", "url(#glow)");
+        nodeNames.attr("fill", value);
+    }
+    if (type === "linkColour") {
+        linkLines.attr("stroke", value);
+    }
+});
