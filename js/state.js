@@ -10,10 +10,12 @@ export let link = { colour: "rgb(255, 255, 255)",
 export let node = { colour: "rgb(255, 255, 255)",
                     radius: 10 };
 
+export let highlight = { colour: "rgb(219, 205, 46)" }
+
 export let maxLen = 12,                                 //maximum length of node names before truncation. Adjust as needed.
         forceLinkDistance = 90,
         forceLinkStrength = 0.5,
-        forceRepulsionStrength = -380,
+        forceRepulsionStrength = -420,
         forceCollisionRadius = 38,
         glowControl = {reg: [0.2, 0.4, 0.9],         //controls the gradient stops for the glow effect.
                        sel: [0.3, 0.6, 0.95]         //The first value controls where most opaque part of glow is.

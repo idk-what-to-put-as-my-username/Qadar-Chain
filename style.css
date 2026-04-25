@@ -36,6 +36,10 @@ body {
     cursor: pointer;
 }
 
+.node-name {
+    pointer-events: none;
+}
+
 /* ── Settings ─────────────────────────────────── */
 
 #settings {
@@ -230,4 +234,46 @@ body {
 
 .preset-btn:active {
     transform: scale(0.95);
+}
+
+/* ── Hover & Select highlight ─────────────────── */
+.node-points .node-circle {
+    transition: transform 0.2s ease, filter 0.2s ease;
+}
+.node-points, .link-line {
+    transition: opacity 0.2s ease;
+}
+
+/* Hover — subtle */
+.node-hovered .node-circle {
+    transform: scale(1.18);
+    fill: url(#hoverGlow);
+}
+
+/* Muted — other nodes during hover */
+.node-muted {
+    opacity: 0.55;
+}
+
+/* Selected — strong */
+.node-selected .node-circle {
+    transform: scale(1.45);
+    fill: url(#hoverGlow);
+    filter: drop-shadow(0 0 6px currentColor);
+}
+
+/* Dimmed — other nodes during select */
+.node-dimmed {
+    opacity: 0.25;
+}
+
+.link-line {
+    transition: opacity 0.2s ease, stroke-width 0.2s ease;
+}
+.link-dimmed {
+    opacity: 0.1;
+}
+.link-hovered {
+    opacity: 1 !important;
+    stroke-width: 2px;
 }
