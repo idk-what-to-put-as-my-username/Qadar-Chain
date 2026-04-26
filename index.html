@@ -3,8 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <title>Chain Reaction</title>
+    <title>Qadar Chain</title>
 </head>
 <body>
     <script src="https://cdn.jsdelivr.net/npm/tsparticles@2/tsparticles.bundle.min.js"></script>
@@ -17,18 +20,26 @@
     <script type="module" src="js/settings.js"></script>
     <script type="module" src="js/timline.js"></script>
 
-    <div class = "title">
-        <h1 style="color: rgb(210, 220, 220);"> Chain </h1>
-        <h1 style="color: #38b6ff;"> Reaction </h1>
-    </div>
+    <header class="title">
+        <div class="title-brand">
+            <span class="title-main">QADAR</span>
+            <span class="title-accent">CHAIN</span>
+        </div>
+    </header>
 
     <svg id="node-graph">
         <defs></defs>
         <g id="main-g"> </g>
     </svg>
+    <button id="sidebar-toggle" class="sidebar-toggle">☰</button>
+    <div id="sidebar" class="sidebar open">
+        <div class="sidebar-header"></div>
+        <div class="sidebar-content"></div>
+    </div>
     <div id="panel"></div>
     <div id="timeline"></div>
     <div id="settings"></div>
     <div id="particles"></div>
+    <script src="js/sidebar.js"></script>
 </body>
 </html> 

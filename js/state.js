@@ -10,7 +10,7 @@ export let link = { colour: "rgb(255, 255, 255)",
 export let node = { colour: "rgb(255, 255, 255)",
                     radius: 10 };
 
-export let highlight = { colour: "rgb(219, 205, 46)" }
+export let highlight = { colour: "rgb(208, 219, 46)" }
 
 export let maxLen = 12,                                 //maximum length of node names before truncation. Adjust as needed.
         forceLinkDistance = 90,

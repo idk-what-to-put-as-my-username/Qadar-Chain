@@ -142,13 +142,13 @@ function getLinkDistance(link, distMap) {
 
 nodeCircles
     .on("mouseenter", function(e, d) {
-        if (selectedNode?.id === d.id) return; // already selected, don't override
+        if (selectedNode) return;
         const nodeGroup = d3.select(this.parentNode);
         nodeGroup.classed("node-hovered", true);
         nodePoints.filter(n => n.id !== d.id).classed("node-muted", true);
     })
     .on("mouseleave", function(e, d) {
-        if (selectedNode?.id === d.id) return;
+        if (selectedNode) return;
         const nodeGroup = d3.select(this.parentNode);
         nodeGroup.classed("node-hovered", false);
         nodePoints.filter(n => n.id !== d.id).classed("node-muted", false);
@@ -167,6 +167,8 @@ nodeCircles
         .classed("link-dimmed", false)
         .style("opacity", null)
         .style("stroke-width", null);
+    // Remove all animated direction lines
+    linkGroups.selectAll(".link-direction").remove();
 
     if (alreadySelected) {
         selectNode(null);
@@ -195,6 +197,24 @@ nodeCircles
             return ld === 0 ? "2px" : null;
         });
 
+    // Add animated direction indicators for adjacent links
+    linkGroups.each(function(l) {
+        const ld = getLinkDistance(l, distMap);
+        if (ld === 0) {
+            // Remove existing animated line if present
+            d3.select(this).select(".link-direction").remove();
+            // Add new animated direction line
+                    d3.select(this).append("line")
+                .attr("class", "link-direction")
+                .attr("stroke", highlight.colour)
+                .attr("stroke-width", 3)
+                .attr("x1", l.source.x)
+                .attr("y1", l.source.y)
+                .attr("x2", l.target.x)
+                .attr("y2", l.target.y);
+        }
+    });
+
     d3.select(this.parentNode).classed("node-selected", true);
     selectNode(d);
 });
@@ -208,7 +228,7 @@ onRerender(() => {
     defs.select("#initGlow").remove();
     defs.select("#hoverGlow").remove();
     createGradient("initGlow", node.colour, glowControl.reg);
-    createGradient("hoverGlow", node.colour, glowControl.sel);
+    createGradient("hoverGlow", highlight.colour, glowControl.sel);
     linkLines.attr("stroke", link.colour);
     nodeNames.attr("fill", node.colour);
 });
