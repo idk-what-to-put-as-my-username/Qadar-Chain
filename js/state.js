@@ -23,8 +23,8 @@ export let maxLen = 12,                                 //maximum length of node
                                                      //The third value controls where the fully transparent part of the glow is.
 
 
-export let selectedNode = null;
-const onNodeSelectedCallbacks = [];
+export let selectedNode = null
+const onNodeSelectedCallbacks = []
 
 export function selectNode(node) {
     selectedNode = node;
@@ -35,7 +35,21 @@ export function onNodeSelected(func) {
     onNodeSelectedCallbacks.push(func);
 }
 
-export let reRender = null;
+export let reRender = null
 export function onRerender(func) {
-    reRender = func;
+    reRender = func
 }
+
+export function CEtoAH(year, month) {
+    const date = new Date(year, month - 1, 1);
+    const hijriFormatter = new Intl.DateTimeFormat('en', {
+        calendar: 'islamic-umalqura',
+        year: 'numeric',
+        month: 'numeric'
+    });
+    const parts = hijriFormatter.formatToParts(date);
+    const AHYear = parts.find(p => p.type === 'year').value
+    return parseInt(AHYear)
+}
+
+

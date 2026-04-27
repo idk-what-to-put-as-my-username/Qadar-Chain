@@ -1,0 +1,69 @@
+/* Node graph styles */
+.node-points .node-circle {
+    transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.node-points, .link-line {
+    transition: opacity 0.2s ease;
+}
+
+.node-hovered .node-circle {
+    transform: scale(1.12);
+    fill: url(#hoverGlow);
+    filter: brightness(1.3);
+}
+
+.node-muted {
+    opacity: 0.55;
+}
+
+.node-selected .node-circle {
+    transform: scale(1.35);
+    fill: url(#hoverGlow);
+    filter: brightness(1.3) drop-shadow(0 0 6px currentColor);
+}
+
+.node-dimmed {
+    opacity: 0.25;
+}
+
+.link-line {
+    transition: opacity 0.2s ease, stroke-width 0.2s ease;
+    filter: brightness(1.1);
+}
+
+.link-dimmed {
+    opacity: 0.1;
+}
+
+.link-hovered {
+    opacity: 1 !important;
+    stroke-width: 2px;
+}
+
+.link-direction {
+    stroke-width: 3;
+    stroke-dasharray: 14, 10;
+    stroke-linecap: round;
+    pointer-events: none;
+    animation: flowDirection 0.5s linear infinite;
+    filter: brightness(1.2) drop-shadow(0 0 1px currentColor);
+}
+
+@keyframes flowDirection {
+    from {
+        stroke-dashoffset: 0;
+    }
+    to {
+        stroke-dashoffset: -24;
+    }
+}
+
+#node-graph {
+    position: absolute;
+    top: var(--header-height);
+    left: 0;
+    width: 100%;
+    height: calc(100vh - var(--header-height));
+    z-index: 1;
+}
