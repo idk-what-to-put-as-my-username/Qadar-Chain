@@ -54,7 +54,7 @@ function formatNodeInfo(node) {
             <div class="panel-card-name">${node.name}</div>
             <div class="panel-card-desc">${node.desc || 'No description available.'}</div>
             <div class="panel-card-time">
-                <span><strong>Year: </strong> ${node.year ?? '—'} CE / ${CEtoAH(node.year, 1) ?? '—'} AH </span>
+                <span><strong>Year: </strong> ${node.year ?? '—'} CE &nbsp/ <span class="ah-time">${CEtoAH(node.year, 1) ?? '—'} AH</span></span>
             </div>
             ${causesHtml}
             ${effectsHtml}
