@@ -25,7 +25,6 @@ export let maxLen = 12,                                 //maximum length of node
                     }                                //The second value controls where the half-transparent part of the glow is.
                                                      //The third value controls where the fully transparent part of the glow is.
 
-
 export let selectedNode = null
 const onNodeSelectedCallbacks = []
 
@@ -146,3 +145,23 @@ export function areAllErasActive() {
 }
 
 export { activeEras };
+
+// ─── Timeline / Present Year State ───────────────────────────────────────────
+export let timelinePresentYear = 1600; // default: show all events
+
+const timelineCallbacks = [];
+
+export function onTimelineChange(cb) {
+    timelineCallbacks.push(cb);
+}
+
+export function setTimelinePresentYear(year) {
+    timelinePresentYear = year;
+    timelineCallbacks.forEach(cb => cb(year));
+}
+
+export function isNodeBeforePresent(nodeId) {
+    const node = nodes.find(n => n.id === nodeId);
+    if (!node || node.year == null) return true;
+    return node.year <= timelinePresentYear;
+}

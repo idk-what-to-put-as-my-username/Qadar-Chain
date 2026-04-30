@@ -51,16 +51,16 @@ settingsContainer.innerHTML = `
             <div class="settings-row">
                 <label class="settings-label">Node Color</label>
                 <div class="color-input-wrapper">
-                    <input type="color" id="node-color-picker" value="${rgbToHex(node.colour)}" />
-                    <div class="color-preview" id="node-color-preview" style="background:${node.colour}"></div>
+                    <input type="color" id="node-color-picker" value="${rgbToHex(defaultColour)}" />
+                    <div class="color-preview" id="node-color-preview" style="background:${defaultColour}"></div>
                 </div>
             </div>
 
             <div class="settings-row">
                 <label class="settings-label">Link Color</label>
                 <div class="color-input-wrapper">
-                    <input type="color" id="link-color-picker" value="${rgbToHex(link.colour)}" />
-                    <div class="color-preview" id="link-color-preview" style="background:${link.colour}"></div>
+                    <input type="color" id="link-color-picker" value="${rgbToHex(defaultColour)}" />
+                    <div class="color-preview" id="link-color-preview" style="background:${defaultColour}"></div>
                 </div>
             </div>
         </div>

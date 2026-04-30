@@ -383,7 +383,9 @@ nodeCircles
         linkGroups.selectAll(".link-direction").remove();
 
         if (alreadySelected) {
+            _internalSelecting = true;
             selectNode(null);
+            _internalSelecting = false;
             applyEraFilter();
             return;
         }
@@ -429,12 +431,75 @@ nodeCircles
         });
 
         d3.select(this.parentNode).classed("node-selected", true);
+        _internalSelecting = true;
         selectNode(d);
+        _internalSelecting = false;
     });
 
 
 
 
+
+// ─── React to external node selections (e.g. from timeline dots) ───
+let _internalSelecting = false;
+onNodeSelected((node) => {
+    if (_internalSelecting) return; // graph is handling it itself, skip
+
+    // Reset all visuals first
+    nodePoints
+        .classed("node-hovered", false)
+        .classed("node-muted", false)
+        .classed("node-selected", false)
+        .style("opacity", null);
+    linkLines
+        .classed("link-hovered", false)
+        .classed("link-dimmed", false)
+        .style("opacity", null)
+        .style("stroke-width", null);
+    linkGroups.selectAll(".link-direction").remove();
+
+    if (!node) {
+        applyEraFilter();
+        return;
+    }
+
+    const distMap = bfsDistances(node.id);
+    const maxDist = Math.max(...distMap.values());
+
+    nodePoints.style("opacity", n => {
+        if (n.id === node.id) return 1;
+        const nd = distMap.get(n.id) ?? (maxDist + 1);
+        return Math.max(0.15, 1 - nd * 0.28);
+    });
+
+    linkLines
+        .style("opacity", l => {
+            const ld = getLinkDistance(l, distMap);
+            if (ld === Infinity) return 0.05;
+            return Math.max(0.08, 1 - ld * 0.3);
+        })
+        .style("stroke-width", l => {
+            const ld = getLinkDistance(l, distMap);
+            return ld === 0 ? "2px" : null;
+        });
+
+    linkGroups.each(function(l) {
+        const ld = getLinkDistance(l, distMap);
+        if (ld === 0) {
+            d3.select(this).select(".link-direction").remove();
+            d3.select(this).append("line")
+                .attr("class", "link-direction")
+                .attr("stroke", highlight.colour)
+                .attr("stroke-width", 3)
+                .attr("x1", l.source.x)
+                .attr("y1", l.source.y)
+                .attr("x2", l.target.x)
+                .attr("y2", l.target.y);
+        }
+    });
+
+    nodePoints.filter(n => n.id === node.id).classed("node-selected", true);
+});
 
 // React to settings changes
 onRerender(() => {
