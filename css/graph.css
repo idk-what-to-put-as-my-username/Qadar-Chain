@@ -15,10 +15,10 @@
     height: 44px;
     padding: 0 16px;
     border-radius: 10px;
-    border: 1px solid rgba(255, 160, 40, 0.25);
+    border: 1px solid rgba(220, 200, 80, 0.25);
     background: rgba(20, 20, 30, 0.85);
     backdrop-filter: blur(8px);
-    color: rgba(255, 180, 60, 0.6);
+    color: rgba(220, 205, 80, 0.6);
     font-family: 'Cinzel', serif;
     font-size: 0.72rem;
     font-weight: 600;
@@ -32,16 +32,16 @@
 }
 
 .what-if-toggle:hover {
-    color: #ffb82e;
-    border-color: rgba(255, 160, 40, 0.6);
-    box-shadow: 0 0 14px rgba(255, 140, 30, 0.2);
+    color: #e8d44a;
+    border-color: rgba(220, 200, 60, 0.6);
+    box-shadow: 0 0 14px rgba(210, 190, 50, 0.25);
 }
 
 .what-if-toggle.active {
-    color: #ff9e2e;
-    border-color: rgba(255, 130, 30, 0.7);
-    background: rgba(255, 120, 20, 0.12);
-    box-shadow: 0 0 20px rgba(255, 120, 20, 0.3);
+    color: #e2d040;
+    border-color: rgba(215, 195, 55, 0.7);
+    background: rgba(210, 185, 40, 0.12);
+    box-shadow: 0 0 20px rgba(205, 180, 40, 0.3);
 }
 
 /* ─── What If Node States ─── */
@@ -54,26 +54,34 @@
 
 .node-erased .node-name {
     fill: rgba(180, 180, 180, 0.6) !important;
-    text-decoration: line-through;
-    text-decoration-color: rgba(255, 80, 80, 0.7);
-    text-decoration-thickness: 1.5px;
 }
 
-/* Affected downstream nodes: grey tint */
+/* Affected downstream nodes: grey tint — transitions so cascade waves look smooth */
 .node-affected .node-circle {
     fill: rgb(90, 90, 95) !important;
     filter: grayscale(1) brightness(0.55);
+    transition: fill 0.25s ease, filter 0.25s ease;
 }
 
 .node-affected .node-name {
     fill: rgba(170, 170, 170, 0.5) !important;
+    transition: fill 0.25s ease;
 }
 
 /* ─── What If Link States ─── */
 .link-erased {
-    opacity: 0.12 !important;
-    stroke: rgb(180, 180, 180) !important;
+    opacity: 0.38 !important;
+    stroke: rgb(210, 210, 215) !important;
     /*stroke-dasharray: 5, 5; */
+}
+
+/* ─── What If Cross (X) on erased root node ─── */
+.whatif-cross {
+    stroke: rgb(255, 60, 60);
+    stroke-width: 2.5px;
+    stroke-linecap: round;
+    filter: drop-shadow(0 0 4px rgba(255, 60, 60, 0.8));
+    pointer-events: none;
 }
 
 /* ─── What If Mode Active Cursor ─── */
@@ -102,7 +110,7 @@ body.what-if-active .node-points {
 }
 
 .link-line {
-    transition: opacity 0.2s ease, stroke-width 0.2s ease;
+    transition: opacity 0.25s ease, stroke-width 0.2s ease, stroke 0.25s ease;
     filter: brightness(1.1);
 }
 
@@ -140,12 +148,4 @@ body.what-if-active .node-points {
     width: 100%;
     height: calc(100vh - var(--header-height));
     z-index: 1;
-}
-/* ─── What If root node cross ────────────────────────────────────────────────── */
-.whatif-cross {
-    stroke: #ff2222;
-    stroke-width: 2.2px;
-    stroke-linecap: round;
-    pointer-events: none;
-    filter: drop-shadow(0 0 3px rgba(255, 40, 40, 0.8));
 }

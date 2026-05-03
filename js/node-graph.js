@@ -78,62 +78,125 @@ whatIfToggle.addEventListener("click", () => {
     toggleWhatIfMode();
 });
 
-// Gradients for What If mode
-createGradient("erasedGlow", "rgb(255, 60, 60)", glowControl.reg);
-createGradient("affectedGlow", "rgb(255, 160, 40)", glowControl.reg);
+// ─── Cascade animation state ──────────────────────────────────────────────────
+let _cascadeTimers = [];
+
+function cancelCascade() {
+    _cascadeTimers.forEach(t => clearTimeout(t));
+    _cascadeTimers = [];
+}
+
+// BFS from removedId following outgoing links only, returns Map<nodeId, depth>
+function bfsDownstreamDepths(removedId) {
+    const depth = new Map();
+    depth.set(removedId, 0);
+    const queue = [removedId];
+    while (queue.length) {
+        const curr = queue.shift();
+        for (const l of links) {
+            const srcId = typeof l.source === 'object' ? l.source.id : l.source;
+            const tgtId = typeof l.target === 'object' ? l.target.id : l.target;
+            if (srcId === curr && !depth.has(tgtId)) {
+                depth.set(tgtId, depth.get(curr) + 1);
+                queue.push(tgtId);
+            }
+        }
+    }
+    return depth; // includes the root at depth 0
+}
 
 function applyWhatIfVisuals(removedId) {
+    cancelCascade();
+
     if (!removedId) {
         clearWhatIfVisuals();
         return;
     }
-    const downstream = new Set(getDownstreamNodes(removedId));
-    const deadIds = new Set([removedId, ...downstream]);
 
     // Clear any inline opacity styles from normal selection
     nodePoints.style("opacity", null);
     linkLines.style("opacity", null).style("stroke-width", null);
     linkGroups.selectAll(".link-direction").remove();
-
-    // Remove any existing what-if rings
     mainGroup.selectAll(".whatif-ring").remove();
 
-    nodePoints.each(function(n) {
-        const g = d3.select(this);
-        const isDead = deadIds.has(n.id);
-        const isRoot = n.id === removedId;
+    // Reset all what-if classes so previous selection is fully cleared
+    nodePoints
+        .classed("node-erased", false)
+        .classed("node-affected", false);
+    linkLines.classed("link-erased", false);
+    nodePoints.selectAll(".whatif-cross").remove();
 
-        g.classed("node-erased", isRoot)
-         .classed("node-affected", !isRoot && downstream.has(n.id))
-         .classed("node-surviving", false); // all nodes stay normally visible
+    // Build depth map (root=0, direct children=1, grandchildren=2, …)
+    const depthMap = bfsDownstreamDepths(removedId);
+    const maxDepth = Math.max(...depthMap.values());
 
-        // Red cross on the root (erased) node
-        g.selectAll(".whatif-cross").remove();
-        if (isRoot) {
-            const arm = 6.5; // half-length of each cross arm (px, in node local space)
-            g.append("line")
-                .attr("class", "whatif-cross")
-                .attr("x1", -arm).attr("y1", -arm)
-                .attr("x2",  arm).attr("y2",  arm);
-            g.append("line")
-                .attr("class", "whatif-cross")
-                .attr("x1",  arm).attr("y1", -arm)
-                .attr("x2", -arm).attr("y2",  arm);
-        }
+    // Group nodes by depth
+    const byDepth = new Map();
+    depthMap.forEach((d, id) => {
+        if (!byDepth.has(d)) byDepth.set(d, []);
+        byDepth.get(d).push(id);
     });
 
-    // Grey out dead links
+    const WAVE_DELAY = 500; // ms between each depth wave
+
+    // Apply root immediately (depth 0)
+    nodePoints.each(function(n) {
+        if (n.id !== removedId) return;
+        const g = d3.select(this);
+        g.classed("node-erased", true);
+        g.selectAll(".whatif-cross").remove();
+        const arm = 16;
+        const cy  = 13;
+        g.append("line")
+            .attr("class", "whatif-cross")
+            .attr("x1", -arm).attr("y1", cy - arm)
+            .attr("x2",  arm).attr("y2", cy + arm);
+        g.append("line")
+            .attr("class", "whatif-cross")
+            .attr("x1",  arm).attr("y1", cy - arm)
+            .attr("x2", -arm).attr("y2", cy + arm);
+    });
+
+    // Also erased links touching root immediately
     linkLines.each(function(l) {
         const srcId = typeof l.source === 'object' ? l.source.id : l.source;
         const tgtId = typeof l.target === 'object' ? l.target.id : l.target;
-        const isDead = deadIds.has(srcId) || deadIds.has(tgtId);
-        d3.select(this).classed("link-erased", isDead);
+        if (srcId === removedId || tgtId === removedId) {
+            d3.select(this).classed("link-erased", true);
+        }
     });
+
+    // Wave in the downstream nodes depth by depth
+    for (let d = 1; d <= maxDepth; d++) {
+        const waveIds = new Set(byDepth.get(d) ?? []);
+        const delay = d * WAVE_DELAY;
+
+        const t = setTimeout(() => {
+            // Mark nodes at this depth as affected
+            nodePoints.each(function(n) {
+                if (waveIds.has(n.id)) {
+                    d3.select(this).classed("node-affected", true);
+                }
+            });
+            // Mark links whose target is in this wave (the link that "carries" the erasure)
+            linkLines.each(function(l) {
+                const tgtId = typeof l.target === 'object' ? l.target.id : l.target;
+                const srcId = typeof l.source === 'object' ? l.source.id : l.source;
+                // Erased if either end is in the dead set (all depths up to current)
+                if (waveIds.has(tgtId) || waveIds.has(srcId)) {
+                    d3.select(this).classed("link-erased", true);
+                }
+            });
+        }, delay);
+
+        _cascadeTimers.push(t);
+    }
 }
 
 
 
 function clearWhatIfVisuals() {
+    cancelCascade();
     mainGroup.selectAll(".whatif-ring").remove();
     nodePoints.selectAll(".whatif-cross").remove();
     nodePoints

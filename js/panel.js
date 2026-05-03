@@ -34,18 +34,22 @@ function formatNodeInfo(node) {
 
     const causesHtml = causes.length ? `
         <div class="panel-section">
-            <div class="panel-section-label">Led to this</div>
+            <div class="panel-section-label panel-section-label--cause">
+                <span class="panel-section-icon">←</span> Led to this
+            </div>
             <div class="panel-links">
-                ${causes.map(c => `<div class="panel-link" onclick="selectNodeById('${c.id}')">← ${c.name}</div>`).join('')}
+                ${causes.map(c => `<div class="panel-link panel-link--cause" onclick="selectNodeById('${c.id}')">← ${c.name}</div>`).join('')}
             </div>
         </div>
     ` : '';
 
     const effectsHtml = effects.length ? `
         <div class="panel-section">
-            <div class="panel-section-label">Rippled into</div>
+            <div class="panel-section-label panel-section-label--effect">
+                <span class="panel-section-icon">→</span> Rippled into
+            </div>
             <div class="panel-links">
-                ${effects.map(e => `<div class="panel-link" onclick="selectNodeById('${e.id}')">→ ${e.name}</div>`).join('')}
+                ${effects.map(e => `<div class="panel-link panel-link--effect" onclick="selectNodeById('${e.id}')">→ ${e.name}</div>`).join('')}
             </div>
         </div>
     ` : '';
@@ -109,7 +113,6 @@ function formatWhatIfAnalysis(removed) {
             <div class="panel-section">
                 <div class="panel-section-label erased-section-label">
                     Erased Events
-                    <span class="erased-count-badge">${erasedCount}</span>
                 </div>
                 <div class="erased-list-scroll">
                     <div class="erased-list">
