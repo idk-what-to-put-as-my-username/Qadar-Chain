@@ -2,6 +2,9 @@ import NODES from "../data/nodes.json" with { type: "json" };
 import LINKS from "../data/links.json" with { type: "json" };
 import ERAS from "../data/eras.json" with { type: "json" };
 import ERA_BRIDGE_LINKS from "../data/era-bridge-links.json" with { type: "json" };
+import LINK_DESCRIPTIONS from "../data/link-descriptions.json" with { type: "json" };
+
+export { LINK_DESCRIPTIONS };
 
 export const nodes = NODES.map(x => ({ ...x }));
 export const links = LINKS.map(x => ({ ...x }));
@@ -35,6 +38,19 @@ export function selectNode(node) {
 
 export function onNodeSelected(func) {
     onNodeSelectedCallbacks.push(func);
+}
+
+// ─── Selected Link State ───
+export let selectedLink = null;
+const onLinkSelectedCallbacks = [];
+
+export function selectLink(link) {
+    selectedLink = link;
+    onLinkSelectedCallbacks.forEach(func => func(link));
+}
+
+export function onLinkSelected(func) {
+    onLinkSelectedCallbacks.push(func);
 }
 
 // ─── What If Mode State ───

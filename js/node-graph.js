@@ -1,5 +1,5 @@
 import { nodes, links } from "./state.js"
-import { selectNode, selectedNode, onNodeSelected } from "./state.js"
+import { selectNode, selectedNode, onNodeSelected, selectLink, selectedLink } from "./state.js"
 import { linkThickness, nodeRadius, defaultColour, highlight, maxLen, forceLinkDistance, forceLinkStrength, forceRepulsionStrength, forceCollisionRadius, glowControl } from "./state.js"
 import { whatIfMode, removedNode, toggleWhatIfMode, setRemovedNode, onWhatIfModeToggle, onRemovedNodeChange, getDownstreamNodes } from "./state.js"
 import { ERAS, NODE_ERA_MAP, getEraColor, ERA_BRIDGE_LINKS } from "./state.js"
@@ -213,7 +213,25 @@ function clearWhatIfVisuals() {
 onWhatIfModeToggle((active) => {
     whatIfToggle.classList.toggle("active", active);
     document.body.classList.toggle("what-if-active", active);
-    if (!active) {
+    if (active) {
+        // Clear any lingering node/link selection visuals before entering what-if mode
+        nodePoints
+            .classed("node-hovered", false)
+            .classed("node-muted", false)
+            .classed("node-selected", false)
+            .style("opacity", null);
+        linkLines
+            .classed("link-hovered", false)
+            .classed("link-dimmed", false)
+            .style("opacity", null)
+            .style("stroke-width", null)
+            .attr("stroke", l => getLinkColor(l));
+        linkGroups.selectAll(".link-direction").remove();
+        _internalSelecting = true;
+        selectNode(null);
+        selectLink(null);
+        _internalSelecting = false;
+    } else {
         clearWhatIfVisuals();
         // Restore normal selection visuals if a node was selected before
         if (selectedNode) {
@@ -251,16 +269,59 @@ linkGroups.append("line")
     .attr("stroke-width", Math.max(8, linkThickness + 4))
     .attr("pointer-events", "stroke")
     .on("mouseenter", function(e, l) {
-        if (selectedNode || whatIfMode) return;
+        if (selectedNode || selectedLink || whatIfMode) return;
+        const srcId = typeof l.source === 'object' ? l.source.id : l.source;
+        const tgtId = typeof l.target === 'object' ? l.target.id : l.target;
+        if (!isNodeVisible(srcId) || !isNodeVisible(tgtId) || !isNodeBeforePresent(srcId) || !isNodeBeforePresent(tgtId)) return;
         d3.select(this.parentNode).select(".link-line")
             .classed("link-hovered", true)
             .attr("stroke", highlight.colour);
     })
     .on("mouseleave", function(e, l) {
-        if (selectedNode || whatIfMode) return;
+        if (selectedNode || selectedLink || whatIfMode) return;
         d3.select(this.parentNode).select(".link-line")
             .classed("link-hovered", false)
             .attr("stroke", getLinkColor(l));
+    })
+    .on("click", function(e, l) {
+        e.stopPropagation();
+        if (whatIfMode) return;
+
+        const srcId = typeof l.source === 'object' ? l.source.id : l.source;
+        const tgtId = typeof l.target === 'object' ? l.target.id : l.target;
+        // Block interaction if either endpoint is hidden or in the future
+        if (!isNodeVisible(srcId) || !isNodeVisible(tgtId) || !isNodeBeforePresent(srcId) || !isNodeBeforePresent(tgtId)) return;
+        const alreadySelected = selectedLink &&
+            (typeof selectedLink.source === 'object' ? selectedLink.source.id : selectedLink.source) === srcId &&
+            (typeof selectedLink.target === 'object' ? selectedLink.target.id : selectedLink.target) === tgtId;
+
+        // Clear node selection first
+        nodePoints
+            .classed("node-hovered", false)
+            .classed("node-muted", false)
+            .classed("node-selected", false)
+            .style("opacity", null);
+        _internalSelecting = true;
+        selectNode(null);
+        _internalSelecting = false;
+
+        // Clear all link visuals
+        linkLines
+            .classed("link-hovered", false)
+            .classed("link-dimmed", false)
+            .style("opacity", null)
+            .style("stroke-width", null)
+            .attr("stroke", d => getLinkColor(d));
+        linkGroups.selectAll(".link-direction").remove();
+
+        if (alreadySelected) {
+            selectLink(null);
+            applyEraFilter();
+            return;
+        }
+
+        applyLinkSelectionVisuals(l);
+        selectLink(l);
     });
 
 linkLines = linkGroups.append("line")
@@ -493,8 +554,7 @@ applyEraFilter();
 // ─── Click on SVG background to deselect ───
 svg.on("click", function(e) {
     if (whatIfMode) return;
-    if (!selectedNode) return;
-    // Only deselect if the click target is the SVG or main group background, not a node
+    if (!selectedNode && !selectedLink) return;
     if (e.target === svg.node() || e.target === mainGroup.node()) {
         deselectNode();
     }
@@ -510,12 +570,73 @@ function deselectNode() {
         .classed("link-hovered", false)
         .classed("link-dimmed", false)
         .style("opacity", null)
-        .style("stroke-width", null);
+        .style("stroke-width", null)
+        .attr("stroke", l => getLinkColor(l));
     linkGroups.selectAll(".link-direction").remove();
     _internalSelecting = true;
     selectNode(null);
     _internalSelecting = false;
+    selectLink(null);
     applyEraFilter();
+}
+
+// ─── Link selection: distance-based dimming from both endpoints ───────────────
+function applyLinkSelectionVisuals(link) {
+    const srcId = typeof link.source === 'object' ? link.source.id : link.source;
+    const tgtId = typeof link.target === 'object' ? link.target.id : link.target;
+
+    // BFS from both endpoints, take the minimum distance for each node
+    const distSrc = bfsDistances(srcId);
+    const distTgt = bfsDistances(tgtId);
+    const distMap = new Map();
+    const allIds = new Set([...distSrc.keys(), ...distTgt.keys()]);
+    allIds.forEach(id => {
+        const ds = distSrc.get(id) ?? Infinity;
+        const dt = distTgt.get(id) ?? Infinity;
+        distMap.set(id, Math.min(ds, dt));
+    });
+
+    // The link itself is distance-0; its endpoints are already at dist 0 from BFS
+    nodePoints.style("opacity", n => {
+        if (!isNodeVisible(n.id) || !isNodeBeforePresent(n.id)) return 0;
+        const nd = distMap.get(n.id) ?? Infinity;
+        if (nd === Infinity) return 0.08;
+        return Math.max(0.15, 1 - nd * 0.254);
+    });
+
+    linkLines
+        .style("opacity", l => {
+            const lSrc = typeof l.source === 'object' ? l.source.id : l.source;
+            const lTgt = typeof l.target === 'object' ? l.target.id : l.target;
+            // The selected link itself — full opacity, but no colour change (direction line handles highlight)
+            if (lSrc === srcId && lTgt === tgtId) return 1;
+            const ld = getLinkDistance(l, distMap);
+            if (ld === Infinity) return 0.05;
+            return Math.max(0.08, 1 - ld * 0.272);
+        })
+        .style("stroke-width", l => {
+            const lSrc = typeof l.source === 'object' ? l.source.id : l.source;
+            const lTgt = typeof l.target === 'object' ? l.target.id : l.target;
+            return (lSrc === srcId && lTgt === tgtId) ? "2px" : null;
+        })
+        .attr("stroke", l => getLinkColor(l));
+
+    // Directional flow only on the selected link
+    linkGroups.selectAll(".link-direction").remove();
+    linkGroups.each(function(l) {
+        const lSrc = typeof l.source === 'object' ? l.source.id : l.source;
+        const lTgt = typeof l.target === 'object' ? l.target.id : l.target;
+        if (lSrc === srcId && lTgt === tgtId) {
+            d3.select(this).append("line")
+                .attr("class", "link-direction")
+                .attr("stroke", highlight.colour)
+                .attr("stroke-width", 3)
+                .attr("x1", link.source.x ?? link.source)
+                .attr("y1", link.source.y ?? 0)
+                .attr("x2", link.target.x ?? link.target)
+                .attr("y2", link.target.y ?? 0);
+        }
+    });
 }
 
 function applySelectionVisuals(node) {
@@ -526,14 +647,14 @@ function applySelectionVisuals(node) {
         if (!isNodeVisible(n.id) || !isNodeBeforePresent(n.id)) return 0;
         if (n.id === node.id) return 1;
         const nd = distMap.get(n.id) ?? (maxDist + 1);
-        return Math.max(0.15, 1 - nd * 0.28);
+        return Math.max(0.15, 1 - nd * 0.254);
     });
 
     linkLines
         .style("opacity", l => {
             const ld = getLinkDistance(l, distMap);
             if (ld === Infinity) return 0.05;
-            return Math.max(0.08, 1 - ld * 0.3);
+            return Math.max(0.08, 1 - ld * 0.272);
         })
         .style("stroke-width", l => {
             const ld = getLinkDistance(l, distMap);
@@ -588,21 +709,21 @@ let _internalSelecting = false;
 
 nodeCircles
     .on("mouseenter", function(e, d) {
-        if (selectedNode || whatIfMode) return;
+        if (selectedNode || selectedLink || whatIfMode) return;
         if (!isNodeVisible(d.id)) return;
         const nodeGroup = d3.select(this.parentNode);
         nodeGroup.classed("node-hovered", true);
         nodePoints.filter(n => n.id !== d.id && isNodeVisible(n.id)).classed("node-muted", true);
     })
     .on("mouseleave", function(e, d) {
-        if (selectedNode || whatIfMode) return;
+        if (selectedNode || selectedLink || whatIfMode) return;
         const nodeGroup = d3.select(this.parentNode);
         nodeGroup.classed("node-hovered", false);
         nodePoints.filter(n => n.id !== d.id).classed("node-muted", false);
     })
     .on("click", function(e, d) {
         e.stopPropagation(); // prevent SVG background click from firing
-        if (!isNodeVisible(d.id)) return;
+        if (!isNodeVisible(d.id) || !isNodeBeforePresent(d.id)) return;
         // What If Mode Click
         if (whatIfMode) {
             if (removedNode?.id === d.id) {
@@ -625,8 +746,10 @@ nodeCircles
             .classed("link-hovered", false)
             .classed("link-dimmed", false)
             .style("opacity", null)
-            .style("stroke-width", null);
+            .style("stroke-width", null)
+            .attr("stroke", l => getLinkColor(l));
         linkGroups.selectAll(".link-direction").remove();
+        selectLink(null);
 
         if (alreadySelected) {
             _internalSelecting = true;
