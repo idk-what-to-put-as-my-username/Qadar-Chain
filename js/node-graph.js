@@ -358,6 +358,7 @@ function getNodeId(d) {
 
 // Track which node IDs were visible on the last applyEraFilter call
 let _prevVisibleIds = new Set();
+let _initialLoad = true;
 // rAF handle for the post-reveal camera-follow loop
 let _followAnimId = null;
 
@@ -392,8 +393,9 @@ function applyEraFilter() {
       const avgY = newlyVisible.reduce((s, n) => s + (n.y ?? 0), 0) / newlyVisible.length;
 
       const t = d3.zoomTransform(svg.node());
-      const targetX = width  / 2 - avgX * t.k;
-      const targetY = height / 2 - avgY * t.k;
+      const { cx, cy } = _getVisualCenter();
+      const targetX = cx - avgX * t.k;
+      const targetY = cy - avgY * t.k;
 
       // Snap strength fades from 1 → 0 over the follow duration so the
       // camera gradually releases the node instead of abruptly stopping
@@ -424,7 +426,12 @@ function applyEraFilter() {
   // Update simulation data - exclude hidden from physics
   simulation.nodes(visibleNodes);
   simulation.force("link").links(visibleLinks);
-  simulation.alpha(0.3).restart();
+  if (_initialLoad) {
+    _initialLoad = false;
+    // Let the simulation run at full alpha from creation for proper spread
+  } else {
+    simulation.alpha(0.3).restart();
+  }
 
   // Visual updates
   nodePoints.each(function(d) {
@@ -659,12 +666,84 @@ onNodeSelected((node) => {
 
     applySelectionVisuals(node);
 });
+// ─── Shared helper: pan (and optionally zoom) to a node ──────────────────────
+// Computes the visual center of the free canvas — excluding the sidebar on the
+// left and the timeline panel on the bottom — so the node lands where the user
+// actually perceives the middle of the graph to be.
+function _getVisualCenter() {
+    const svgEl = svg.node();
+    const svgWidth  = svgEl.clientWidth  || window.innerWidth;
+    const svgHeight = svgEl.clientHeight || (window.innerHeight - 80); // SVG already starts below header
+
+    // Sidebar: measure its rendered width only when it's open
+    const sidebarEl = document.getElementById("sidebar");
+    const sidebarW  = (sidebarEl && sidebarEl.classList.contains("open"))
+        ? (sidebarEl.getBoundingClientRect().width || 0)
+        : 0;
+
+    // Timeline: how many px of the SVG height does the timeline panel consume?
+    const timelineInner = document.getElementById("timeline-inner");
+    const timelineTab   = document.getElementById("timeline-tab");
+    const tlPanelEl     = document.getElementById("timeline-panel");
+    let timelineH = 0;
+    if (tlPanelEl) {
+        const tlContainer = document.getElementById("timeline-container");
+        const isOpen = tlContainer && tlContainer.classList.contains("open");
+        const tabH   = timelineTab   ? timelineTab.getBoundingClientRect().height   : 0;
+        const innerH = (isOpen && timelineInner)
+            ? timelineInner.getBoundingClientRect().height
+            : 0;
+        timelineH = tabH + innerH;
+    }
+
+    // Free canvas bounds (SVG-element-local coordinates)
+    const freeLeft   = sidebarW;
+    const freeRight  = svgWidth;
+    const freeTop    = 0;
+    const freeBottom = svgHeight - timelineH;
+
+    return {
+        cx: freeLeft + (freeRight  - freeLeft) / 2,
+        cy: freeTop  + (freeBottom - freeTop)  / 2,
+    };
+}
+
+function _panToNode(node, { zoom = false } = {}) {
+    if (!node || node.x == null || node.y == null) return;
+
+    const { cx, cy } = _getVisualCenter();
+
+    if (zoom) {
+        const targetScale = 1.2;
+        const tx = cx - node.x * targetScale;
+        const ty = cy - node.y * targetScale;
+        svg.transition()
+            .duration(600)
+            .ease(d3.easeCubicInOut)
+            .call(
+                zoomBehaviour.transform,
+                d3.zoomIdentity.translate(tx, ty).scale(targetScale)
+            );
+    } else {
+        const t  = d3.zoomTransform(svg.node());
+        const tx = cx - node.x * t.k;
+        const ty = cy - node.y * t.k;
+        svg.transition()
+            .duration(500)
+            .ease(d3.easeCubicInOut)
+            .call(
+                zoomBehaviour.transform,
+                d3.zoomIdentity.translate(tx, ty).scale(t.k)
+            );
+    }
+}
+
 // ─── Global: focus + select a node by id (used by search) ────────────────────
+// Selects the node AND pans+zooms to centre it.
 window.focusNode = function(nodeId) {
     const node = nodes.find(n => n.id === nodeId);
     if (!node) return;
 
-    // Select it via the normal click pathway
     nodePoints
         .classed("node-hovered", false)
         .classed("node-muted", false)
@@ -682,23 +761,12 @@ window.focusNode = function(nodeId) {
     selectNode(node);
     _internalSelecting = false;
 
-    // Pan + zoom the graph so the node is centred on screen
-    // node.x / node.y are the simulation coordinates
-    if (node.x == null || node.y == null) return;
+    _panToNode(node, { zoom: true });
+};
 
-    const svgEl = svg.node();
-    const svgWidth  = svgEl.clientWidth  || window.innerWidth;
-    const svgHeight = svgEl.clientHeight || (window.innerHeight - 80);
-
-    const targetScale = 1.4;
-    const tx = svgWidth  / 2 - node.x * targetScale;
-    const ty = svgHeight / 2 - node.y * targetScale;
-
-    svg.transition()
-        .duration(600)
-        .ease(d3.easeCubicInOut)
-        .call(
-            zoomBehaviour.transform,
-            d3.zoomIdentity.translate(tx, ty).scale(targetScale)
-        );
+// ─── Global: pan only (no zoom, no re-select) — used by sidebar links ────────
+window.panToNode = function(nodeId) {
+    const node = nodes.find(n => n.id === nodeId);
+    if (!node) return;
+    _panToNode(node, { zoom: false });
 };

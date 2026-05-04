@@ -40,7 +40,7 @@ function formatNodeInfo(node) {
                 <span class="panel-section-icon">←</span> Led to this
             </div>
             <div class="panel-links">
-                ${causes.map(c => `<div class="panel-link panel-link--cause" onclick="selectNodeById('${c.id}')">← ${c.name}</div>`).join('')}
+                ${causes.map(c => `<div class="panel-link panel-link--cause" onclick="selectNodeById('${c.id}'); panToNode('${c.id}')">← ${c.name}</div>`).join('')}
             </div>
         </div>
     ` : '';
@@ -51,7 +51,7 @@ function formatNodeInfo(node) {
                 <span class="panel-section-icon">→</span> Rippled into
             </div>
             <div class="panel-links">
-                ${effects.map(e => `<div class="panel-link panel-link--effect" onclick="selectNodeById('${e.id}')">→ ${e.name}</div>`).join('')}
+                ${effects.map(e => `<div class="panel-link panel-link--effect" onclick="selectNodeById('${e.id}'); panToNode('${e.id}')">→ ${e.name}</div>`).join('')}
             </div>
         </div>
     ` : '';
@@ -164,6 +164,7 @@ onRemovedNodeChange((node) => {
 
 // Make functions global for onclick
 window.selectNodeById = selectNodeById;
+window.focusNode = focusNode;
 window.resetWhatIf = () => {
     toggleWhatIfMode();
 };

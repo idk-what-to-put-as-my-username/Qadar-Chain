@@ -351,26 +351,26 @@ trackWrapper.addEventListener("mousedown", (e) => {
         panStartOffset = viewOffset;
         trackWrapper.style.cursor = "grabbing";
     } else {
-        // If clicking directly on a node dot, select that node on the graph
-        // and do NOT update the present year
+        // If clicking directly on a node dot, select + pan to that node on the
+        // graph without updating the present year
         if (e.target.classList.contains("timeline-node-dot") && !e.target.classList.contains("hidden-dot")) {
             const nodeId = e.target.dataset.nodeId;
             if (nodeId) {
-                const node = nodes.find(n => n.id === nodeId);
-                if (node) {
-                    // Toggle: clicking an already-selected node deselects it
-                    if (State.selectedNode?.id === nodeId) {
-                        selectNode(null);
-                    } else {
-                        selectNode(node);
-                    }
+                if (State.selectedNode?.id === nodeId) {
+                    // Clicking the already-selected dot deselects it
+                    selectNode(null);
+                } else if (window.focusNode) {
+                    // focusNode selects the node AND pans the graph camera to it
+                    window.focusNode(nodeId);
                 }
             }
             dragMode = null;
             return;
         }
         dragMode = "present";
+        pauseIfPlaying();
         updatePresent(clientXToYear(e.clientX));
+
     }
 });
 
@@ -388,9 +388,11 @@ window.addEventListener("mousemove", (e) => {
 });
 
 window.addEventListener("mouseup", () => {
+    if (dragMode === "present") startPlayback();
     dragMode = null;
     trackWrapper.style.cursor = "";
 });
+
 
 // Cursor hints
 trackWrapper.addEventListener("mousemove", (e) => {
