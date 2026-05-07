@@ -42,13 +42,16 @@ body {
     text-shadow: 0 0 18px rgba(255, 255, 255, 0.25);
 }
 
-.title-brand {
+.title {
     display: inline-flex;
     gap: 0.7ch;
     font-size: 2.4rem;
     font-weight: 500;
     letter-spacing: 0.3em;
     text-transform: uppercase;
+}
+
+.title-main {
     color: #f3ce18;
 }
 
