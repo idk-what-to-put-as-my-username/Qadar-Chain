@@ -334,9 +334,10 @@ function render() {
 }
 
 // ─── Interaction ──────────────────────────────────────────────────────────────
-let dragMode = null;   // "present" | "pan" | null
+let dragMode = null;          // "present" | "pan" | null
 let panStartX = 0;
 let panStartOffset = 0;
+let _wasPlayingBeforeDrag = false; // remember playback state across a present-drag
 
 function isInPanZone(e) {
     const rect = trackWrapper.getBoundingClientRect();
@@ -368,6 +369,7 @@ trackWrapper.addEventListener("mousedown", (e) => {
             return;
         }
         dragMode = "present";
+        _wasPlayingBeforeDrag = isPlaying;
         pauseIfPlaying();
         updatePresent(clientXToYear(e.clientX));
 
@@ -388,7 +390,8 @@ window.addEventListener("mousemove", (e) => {
 });
 
 window.addEventListener("mouseup", () => {
-    if (dragMode === "present") startPlayback();
+    if (dragMode === "present" && _wasPlayingBeforeDrag) startPlayback();
+    _wasPlayingBeforeDrag = false;
     dragMode = null;
     trackWrapper.style.cursor = "";
 });

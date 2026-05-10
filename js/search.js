@@ -1,4 +1,4 @@
-import { nodes, ERAS, NODE_ERA_MAP } from "./state.js";
+import { nodes, ERAS, NODE_ERA_MAP, setTimelinePresentYear, timelinePresentYear } from "./state.js";
 
 const input   = document.getElementById("node-search-input");
 const results = document.getElementById("node-search-results");
@@ -77,6 +77,13 @@ function selectResult(nodeId) {
     hide();
     input.value = "";
     input.blur();
+
+    // If the event's year is beyond the current present, advance the timeline
+    const node = nodes.find(n => n.id === nodeId);
+    if (node && node.year != null && node.year > timelinePresentYear) {
+        setTimelinePresentYear(node.year);
+    }
+
     if (window.focusNode) {
         window.focusNode(nodeId);
     }
@@ -124,4 +131,4 @@ results.addEventListener("mousedown", (e) => {
 // Close dropdown when clicking outside
 document.addEventListener("click", (e) => {
     if (!e.target.closest("#node-search-container")) hide();
-});
+}); 

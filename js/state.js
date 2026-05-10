@@ -31,8 +31,13 @@ export let maxLen = 12,                                 //maximum length of node
 export let selectedNode = null
 const onNodeSelectedCallbacks = []
 
-export function selectNode(node) {
+// When true the selection was initiated by a direct graph click — sound.js
+// uses this flag to decide whether to play the "ting" sound.
+export let nodeSelectedFromGraph = false;
+
+export function selectNode(node, fromGraph = false) {
     selectedNode = node;
+    nodeSelectedFromGraph = fromGraph;
     onNodeSelectedCallbacks.forEach(func => func(node));
 }
 

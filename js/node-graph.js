@@ -482,9 +482,12 @@ function applyLinkSelectionVisuals(link) {
 // ─── Node click / hover ───────────────────────────────────────────────────────
 let _internalSelecting = false;
 
-function _internalSelectNode(node) {
+// fromGraph=true only when the user clicked a node circle directly on the graph.
+// All other call-sites (focusNode, era filter restore, what-if exit) pass false
+// so that "ting" is not replayed for programmatic selections.
+function _internalSelectNode(node, fromGraph = false) {
     _internalSelecting = true;
-    selectNode(node);
+    selectNode(node, fromGraph);
     _internalSelecting = false;
 }
 
@@ -532,7 +535,7 @@ nodeCircles
         }
 
         applySelectionVisuals(d);
-        _internalSelectNode(d);
+        _internalSelectNode(d, true); // ← graph click: play ting
     });
 
 // React to external node selections (e.g. from timeline dots or search)
