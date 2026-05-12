@@ -27,26 +27,20 @@ function _getCtx() {
     return _ctx;
 }
 
-async function _loadAll() {
-    const ctx = _getCtx();
-
-    async function load(name, path) {
-        try {
-            const res = await fetch(path);
-            const raw = await res.arrayBuffer();
-            _buffers[name] = await ctx.decodeAudioData(raw);
-        } catch (err) {
-            console.warn(`[Sound] Could not load "${name}" from "${path}":`, err);
-        }
+async function load(name, path) {
+    try {
+        const audio = new Audio(path);
+        audio.crossOrigin = "anonymous";
+        await new Promise((resolve, reject) => {
+            audio.addEventListener("canplaythrough", resolve, { once: true });
+            audio.addEventListener("error", reject, { once: true });
+            audio.load();
+        });
+        const source = _ctx.createMediaElementSource(audio);
+        _buffers[name] = { audio, source };
+    } catch (err) {
+        console.warn(`[Sound] Could not load "${name}" from "${path}":`, err);
     }
-
-    const BASE = window.location.pathname.includes("/Qadar-Chain") ? "/Qadar-Chain" : "";
-
-    await Promise.all([
-        load("ting",  `${BASE}/audio/ting.mp3`),
-        load("click", `${BASE}/audio/click.mp3`),
-        load("thud",  `${BASE}/audio/thud.mp3`),
-    ]);
 }
 
 // Trigger loading on the first user interaction anywhere on the page
@@ -63,22 +57,22 @@ document.addEventListener("pointerdown", _ensureLoaded, { once: true, capture: t
 
 // ─── Core play helper ─────────────────────────────────────────────────────────
 function _play(name, { volume = 1, playbackRate = 1 } = {}) {
-    // If buffers aren't loaded yet, silently skip — this can only happen if
-    // _play is somehow called before any user gesture, which shouldn't occur.
-    const buf = _buffers[name];
-    if (!buf || !_ctx) return;
-
+    const entry = _buffers[name];
+    if (!entry || !_ctx) return;
     if (_ctx.state === "suspended") _ctx.resume();
 
-    const src = _ctx.createBufferSource();
-    src.buffer = buf;
-    src.playbackRate.value = playbackRate;
+    // Clone the audio element so overlapping plays work
+    const clone = entry.audio.cloneNode();
+    clone.crossOrigin = "anonymous";
+    clone.volume = volume;
+    clone.playbackRate = playbackRate;
 
+    const src = _ctx.createMediaElementSource(clone);
     const gain = _ctx.createGain();
     gain.gain.value = volume;
     src.connect(gain);
     gain.connect(_master);
-    src.start();
+    clone.play();
 }
 
 // ─── Node selection → ting (only on direct graph clicks) ─────────────────────
