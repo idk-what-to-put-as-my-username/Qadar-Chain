@@ -41,9 +41,9 @@ async function _loadAll() {
     }
 
     await Promise.all([
-        load("ting",  "../audio/ting.mp3"),
-        load("click", "../audio/click.mp3"),
-        load("thud",  "../audio/thud.mp3"),
+        load("ting",  "audio/ting.mp3"),
+        load("click", "audio/click.mp3"),
+        load("thud",  "audio/thud.mp3"),
     ]);
 }
 

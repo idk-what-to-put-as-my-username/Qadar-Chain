@@ -108,18 +108,13 @@ export function getDownstreamNodes(startNodeId) {
     return Array.from(visited);
 }
 
-export let reRender = null
-export function onRerender(func) {
-    reRender = func
-}
-
 export function CEtoAH(year, month) {
     const date = new Date(year, month - 1, 1);
     const hijriFormatter = new Intl.DateTimeFormat('en', {
         calendar: 'islamic-umalqura',
         year: 'numeric',
         month: 'numeric'
-    });
+    })
     const parts = hijriFormatter.formatToParts(date);
     const AHYear = parts.find(p => p.type === 'year').value
     return parseInt(AHYear)
