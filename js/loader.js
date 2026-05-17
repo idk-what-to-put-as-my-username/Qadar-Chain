@@ -105,7 +105,7 @@ export function initLoader(simulation) {
     }
 
     // Debounced "end" listener — the sim can restart briefly (alpha bumps from
-    // applyEraFilter), so we wait a short beat after it truly goes quiet.
+    // applyVisibilityFilter), so we wait a short beat after it truly goes quiet.
     let _settleTimer = null;
 
     simulation.on("end.loader", () => {

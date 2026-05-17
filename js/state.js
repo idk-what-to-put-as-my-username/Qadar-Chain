@@ -149,12 +149,14 @@ export function notifyChange() {
     callbacks.forEach(cb => cb(activeEras));
 }
 
-export function isNodeVisible(nodeId) {
+// True when a node belongs to one of the currently selected eras
+export function isNodeOnSelectedEras(nodeId) {
     const eraId = NODE_ERA_MAP[nodeId];
     // If node not assigned to any era, always show
     if (!eraId) return true;
     return activeEras.has(eraId);
 }
+
 
 export function areAllErasActive() {
     return activeEras.size === ERAS.length;

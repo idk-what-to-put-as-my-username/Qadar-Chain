@@ -7,7 +7,7 @@
 import { onNodeSelected, onLinkSelected } from "./state.js";
 import { onRemovedNodeChange, onWhatIfModeToggle } from "./state.js";
 import { links, nodes } from "./state.js";
-import { isNodeVisible, isNodeBeforePresent, nodeSelectedFromGraph } from "./state.js";
+import { isNodeOnSelectedEras, isNodeBeforePresent, nodeSelectedFromGraph } from "./state.js";
 
 // ─── Lazy AudioContext ────────────────────────────────────────────────────────
 // Browsers block AudioContext creation until a user gesture. We create it on
@@ -126,7 +126,7 @@ function _cancelThuds() {
 
 // Returns true only if the node is both era-visible and before the present year
 function _isNodeRendered(nodeId) {
-    return isNodeVisible(nodeId) && isNodeBeforePresent(nodeId);
+    return isNodeOnSelectedEras(nodeId) && isNodeBeforePresent(nodeId);
 }
 
 // BFS returning Map<nodeId, depth> following outgoing links only

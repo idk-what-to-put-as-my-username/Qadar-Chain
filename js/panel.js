@@ -88,7 +88,7 @@ function formatWhatIfAnalysis(removed) {
     const maxYear = years.length ? years[years.length - 1] : null;
 
     const erasedListHtml = erasedNodes.map((n, i) => `
-        <div class="erased-item ${i === 0 ? 'erased-root' : ''}">
+        <div class="erased-item ${i === 0 ? 'erased-root' : ''}" onclick="focusNode('${n.id}')">
             <span class="erased-bullet"></span>
             <span class="erased-name">${n.name}</span>
             <span class="erased-year">${n.year ?? '—'} CE</span>

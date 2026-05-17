@@ -1,5 +1,5 @@
 import { nodes, ERAS, NODE_ERA_MAP, selectNode, onTimelineChange, onEraFilterChange } from "./state.js";
-import { setTimelinePresentYear, timelinePresentYear, isNodeVisible } from "./state.js";
+import { setTimelinePresentYear, timelinePresentYear, isNodeOnSelectedEras } from "./state.js";
 import * as State from "./state.js";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
@@ -296,7 +296,8 @@ function render() {
         const era     = ERAS.find(e => e.id === eraId);
         const color   = era ? era.color : "rgb(255,255,255)";
         const isFuture   = node.year > timelinePresentYear;
-        const eraHidden  = !isNodeVisible(node.id);
+        const eraHidden  = !isNodeOnSelectedEras(node.id);
+
         const isHidden   = isFuture || eraHidden;
 
         const dot = document.createElement("div");
@@ -329,7 +330,7 @@ function render() {
     }
 
     // ── Hidden count (future + era-filtered) ──
-    const hiddenNodes = nodes.filter(n => n.year && (n.year > timelinePresentYear || !isNodeVisible(n.id)));
+    const hiddenNodes = nodes.filter(n => n.year && (n.year > timelinePresentYear || !isNodeOnSelectedEras(n.id)));
     hiddenCountEl.textContent = hiddenNodes.length > 0 ? `${hiddenNodes.length} events hidden` : "";
 }
 

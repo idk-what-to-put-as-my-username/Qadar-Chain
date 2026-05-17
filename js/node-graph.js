@@ -3,7 +3,8 @@ import { selectNode, selectedNode, onNodeSelected, selectLink, selectedLink } fr
 import { linkThickness, nodeRadius, defaultColour, highlight, maxLen, forceLinkDistance, forceLinkStrength, forceRepulsionStrength, forceCollisionRadius, glowControl } from "./state.js";
 import { whatIfMode } from "./state.js";
 import { ERAS, NODE_ERA_MAP, ERA_BRIDGE_LINKS } from "./state.js";
-import { onEraFilterChange, isNodeVisible, areAllErasActive, onTimelineChange, isNodeBeforePresent } from "./state.js";
+import { onEraFilterChange, isNodeOnSelectedEras, areAllErasActive, onTimelineChange, isNodeBeforePresent } from "./state.js";
+
 
 import { initWhatIf, handleWhatIfNodeClick } from "./what-if.js";
 import { initLoader } from "./loader.js";
@@ -148,7 +149,7 @@ linkGroups.append("line")
 
         if (alreadySelected) {
             selectLink(null);
-            applyEraFilter();
+            applyVisibilityFilter();
             return;
         }
 
@@ -219,15 +220,9 @@ simulation.on("tick", () => {
         .attr("y1", d => (typeof d.source === "object" ? d.source.y : 0))
         .attr("x2", d => (typeof d.target === "object" ? d.target.x : 0))
         .attr("y2", d => (typeof d.target === "object" ? d.target.y : 0));
-    // Keep what-if rings anchored to their nodes
-    mainGroup.selectAll(".whatif-ring").each(function() {
-        const id   = d3.select(this).attr("data-node-id");
-        const node = nodes.find(n => n.id === id);
-        if (node) d3.select(this).attr("cx", node.x).attr("cy", node.y);
-    });
 });
 
-// ─── Era filter / timeline ────────────────────────────────────────────────────
+// ─── Visibility filter (era + timeline present year) ─────────────────────────
 function getNodeId(d) {
     return typeof d === "object" ? d.id : d;
 }
@@ -236,13 +231,13 @@ let _prevVisibleIds = new Set();
 let _initialLoad    = true;
 let _followAnimId   = null;
 
-function applyEraFilter() {
+function applyVisibilityFilter() {
     const allActive    = areAllErasActive();
-    const visibleNodes = nodes.filter(n => isNodeVisible(n.id) && isNodeBeforePresent(n.id));
+    const visibleNodes = nodes.filter(n => isNodeOnSelectedEras(n.id) && isNodeBeforePresent(n.id));
     const visibleLinks = links.filter(l => {
         const srcId = getNodeId(l.source);
         const tgtId = getNodeId(l.target);
-        return isNodeVisible(srcId) && isNodeVisible(tgtId)
+        return isNodeOnSelectedEras(srcId) && isNodeOnSelectedEras(tgtId)
             && isNodeBeforePresent(srcId) && isNodeBeforePresent(tgtId);
     });
 
@@ -299,7 +294,7 @@ function applyEraFilter() {
     linkGroups.each(function(d) {
         const srcId   = getNodeId(d.source);
         const tgtId   = getNodeId(d.target);
-        const visible = isNodeVisible(srcId) && isNodeVisible(tgtId)
+        const visible = isNodeOnSelectedEras(srcId) && isNodeOnSelectedEras(tgtId)
                      && isNodeBeforePresent(srcId) && isNodeBeforePresent(tgtId);
         d3.select(this)
             .classed("era-hidden", !visible)
@@ -324,19 +319,19 @@ onEraFilterChange(() => {
         .style("opacity",        null)
         .style("stroke-width",   null);
     linkGroups.selectAll(".link-direction").remove();
-    applyEraFilter();
+    applyVisibilityFilter();
 });
 
 onTimelineChange(() => {
-    applyEraFilter();
+    applyVisibilityFilter();
     if (selectedNode) applySelectionVisuals(selectedNode);
 });
 
 // Seed prevVisible so initial nodes don't animate in from centre
 _prevVisibleIds = new Set(
-    nodes.filter(n => isNodeVisible(n.id) && isNodeBeforePresent(n.id)).map(n => n.id)
+    nodes.filter(n => isNodeOnSelectedEras(n.id) && isNodeBeforePresent(n.id)).map(n => n.id)
 );
-applyEraFilter();
+applyVisibilityFilter();
 
 // ─── Background click to deselect ─────────────────────────────────────────────
 svg.on("click", function(e) {
@@ -362,7 +357,7 @@ function deselectAll() {
     linkGroups.selectAll(".link-direction").remove();
     _internalSelectNode(null);
     selectLink(null);
-    applyEraFilter();
+    applyVisibilityFilter();
 }
 
 // ─── BFS helpers ──────────────────────────────────────────────────────────────
@@ -397,7 +392,7 @@ function applySelectionVisuals(node) {
     const maxDist = Math.max(...distMap.values());
 
     nodePoints.style("opacity", n => {
-        if (!isNodeVisible(n.id) || !isNodeBeforePresent(n.id)) return 0;
+        if (!isNodeOnSelectedEras(n.id) || !isNodeBeforePresent(n.id)) return 0;
         if (n.id === node.id) return 1;
         const nd = distMap.get(n.id) ?? (maxDist + 1);
         return Math.max(0.15, 1 - nd * 0.254);
@@ -440,7 +435,7 @@ function applyLinkSelectionVisuals(link) {
     });
 
     nodePoints.style("opacity", n => {
-        if (!isNodeVisible(n.id) || !isNodeBeforePresent(n.id)) return 0;
+        if (!isNodeOnSelectedEras(n.id) || !isNodeBeforePresent(n.id)) return 0;
         const nd = distMap.get(n.id) ?? Infinity;
         if (nd === Infinity) return 0.08;
         return Math.max(0.15, 1 - nd * 0.254);
@@ -494,9 +489,9 @@ function _internalSelectNode(node, fromGraph = false) {
 nodeCircles
     .on("mouseenter", function(e, d) {
         if (selectedNode || selectedLink || whatIfMode) return;
-        if (!isNodeVisible(d.id)) return;
+        if (!isNodeOnSelectedEras(d.id)) return;
         d3.select(this.parentNode).classed("node-hovered", true);
-        nodePoints.filter(n => n.id !== d.id && isNodeVisible(n.id)).classed("node-muted", true);
+        nodePoints.filter(n => n.id !== d.id && isNodeOnSelectedEras(n.id)).classed("node-muted", true);
     })
     .on("mouseleave", function(e, d) {
         if (selectedNode || selectedLink || whatIfMode) return;
@@ -505,7 +500,7 @@ nodeCircles
     })
     .on("click", function(e, d) {
         e.stopPropagation();
-        if (!isNodeVisible(d.id)) return;
+        if (!isNodeOnSelectedEras(d.id)) return;
 
         if (whatIfMode) {
             handleWhatIfNodeClick(d);
@@ -530,12 +525,13 @@ nodeCircles
 
         if (alreadySelected) {
             _internalSelectNode(null);
-            applyEraFilter();
+            applyVisibilityFilter();
             return;
+        } else {
+            applySelectionVisuals(d);
+            _internalSelectNode(d, true); // ← graph click: play ting
         }
 
-        applySelectionVisuals(d);
-        _internalSelectNode(d, true); // ← graph click: play ting
     });
 
 // React to external node selections (e.g. from timeline dots or search)
@@ -555,7 +551,7 @@ onNodeSelected((node) => {
         .style("stroke-width",   null);
     linkGroups.selectAll(".link-direction").remove();
 
-    if (!node) { applyEraFilter(); return; }
+    if (!node) { applyVisibilityFilter(); return; }
 
     applySelectionVisuals(node);
 });
@@ -631,12 +627,6 @@ window.focusNode = function(nodeId) {
     applySelectionVisuals(node);
     _internalSelectNode(node);
     _panToNode(node, { zoom: true });
-};
-
-window.panToNode = function(nodeId) {
-    const node = nodes.find(n => n.id === nodeId);
-    if (!node) return;
-    _panToNode(node, { zoom: false });
 };
 
 // ─── Wire up What If and Loader (after all D3 refs are ready) ─────────────────

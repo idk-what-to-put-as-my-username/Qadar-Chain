@@ -319,11 +319,13 @@
     background: rgba(120, 20, 20, 0.12);
     border: 1px solid rgba(160, 40, 40, 0.18);
     font-size: 13px;
-    transition: background 0.15s;
+    transition: background 0.15s, border-color 0.15s;
+    cursor: pointer;
 }
 
 .erased-item:hover {
-    background: rgba(120, 20, 20, 0.2);
+    background: rgba(120, 20, 20, 0.28);
+    border-color: rgba(190, 50, 50, 0.38);
 }
 
 .erased-item.erased-root {
